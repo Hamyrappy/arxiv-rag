@@ -1,0 +1,16 @@
+query	relevant_ids	relevance_tier
+how to use LLM-as-a-judge for evaluating the extraction quality of scientific ideas and claims from abstracts	["2603.01092"]	high
+validation of atomic fact extraction quality through reverse recombination into the original abstract	["2603.01092"]	high
+generating non-obvious scientific hypotheses using compositional representations and idea atoms	["2603.01092"]	medium
+how to measure semantic shift and topic evolution in ACL conference papers	["2305.12920"]	high
+applying causal inference methods to identify paradigm shifts in scientific research	["2305.12920"]	high
+the impact of new datasets and metrics on the popularity of specific NLP research tasks	["2305.12920"]	high
+properties of SPECTER-2 embeddings and the impact of multi-format training on their quality	["2211.13308"]	high
+using control codes and adapters for multi-task learning on scientific documents	["2211.13308"]	medium
+benchmarks for evaluating the quality of scientific document representations	["2211.13308", "2004.07180"]	high
+using citation graphs and citation-informed transformers for learning scientific document representations	["2004.07180"]	high
+obtaining high-quality embeddings of scientific papers from titles and abstracts without task-specific fine-tuning	["2004.07180", "2211.13308"]	high
+FActScore metric for fine-grained evaluation of factual precision in long-form LLM generation	["2305.14251"]	high
+evaluating hallucinations in long texts by breaking down the generation into atomic facts	["2305.14251", "2603.01092"]	medium
+Atomic Content Units ACU protocol to improve inter-annotator agreement in manual summarization evaluation	["2212.07981"]	high
+reliability and statistical significance issues of human evaluation for text summarization systems	["2212.07981"]	high
