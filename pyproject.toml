@@ -15,7 +15,12 @@ dependencies = [
     "tqdm",
     "scikit-learn",
     "rank_bm25",
+    "kaggle",
 ]
+
+[project.scripts]
+arxiv-rag-prepare-data = "arxiv_rag.dataset.prepare_data:main"
+arxiv-rag-run-baseline = "arxiv_rag.baseline_cli:main"
 
 [project.optional-dependencies]
 dev = []

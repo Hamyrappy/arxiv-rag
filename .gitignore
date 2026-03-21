@@ -208,5 +208,6 @@ __marimo__/
 
 # Project: processed dataset and large data
 output/
+data/
 *.parquet
 *metadata*oai*snapshot*.json
