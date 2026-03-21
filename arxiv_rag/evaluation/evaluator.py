@@ -3,6 +3,8 @@
 import math
 from typing import Any, Iterable
 
+from tqdm import tqdm
+
 
 class Evaluator:
     """Evaluator for RAG retrieval models.
@@ -69,7 +71,13 @@ class Evaluator:
     # Main evaluation method
     # ------------------------------------------------------------------
 
-    def evaluate(self, benchmark: list, k: int = 10) -> dict:
+    def evaluate(
+        self,
+        benchmark: list,
+        k: int = 10,
+        show_progress: bool = False,
+        progress_desc: str = "Evaluating",
+    ) -> dict:
         """Run evaluation over all benchmark queries and return averaged metrics.
 
         Parameters
@@ -80,6 +88,10 @@ class Evaluator:
               - ``"relevant_ids"`` (list[str]) – ground-truth doc IDs
         k : int
             Cut-off depth for Recall@k and nDCG@k (default 10).
+        show_progress : bool
+            Whether to show a tqdm progress bar over benchmark queries.
+        progress_desc : str
+            Description to show next to the progress bar.
 
         Returns
         -------
@@ -93,7 +105,11 @@ class Evaluator:
         per_query_results = []
         recall_sum = mrr_sum = ndcg_sum = 0.0
 
-        for entry in benchmark:
+        entries: Iterable[dict] = benchmark
+        if show_progress:
+            entries = tqdm(benchmark, desc=progress_desc, unit="query")
+
+        for entry in entries:
             query: str = entry["query"]
             relevant_ids: set = set(entry["relevant_ids"])
 

@@ -1,0 +1,101 @@
+query	relevant_ids	relevance_tier
+bayesian data assimilation for COVID-19 epidemic evolution	["2101.01532"]	high
+high-dimensional bayesian optimisation for expensive black-box functions	["2510.08965"]	medium
+battery reliability and diagnosis in lithium-ion systems	["2503.00305"]	low
+locality-aware point-view fusion transformer for 3D shape recognition	["2109.01291"]	high
+multimodal llm unlearning of sensitive visual concepts	["2511.11299"]	medium
+cosmic acceleration from alternative equations of state	["2403.17880"]	low
+growth of CdTe quantum dots on silicon substrates	["cond-mat/0601050"]	high
+quantum electromechanical shuttle noise and transport	["cond-mat/0509748"]	medium
+numerical integration of oscillatory Fourier-type integrals	["2102.07551"]	low
+Stark deflectometry for nanoparticle sorting	["0708.1936"]	high
+dust enrichment near massive star clusters in II Zw 40	["1611.09936"]	medium
+belief revision and consistency-based knowledge change	["cs/0003052"]	low
+finite difference discontinuous Galerkin wave equation solver	["2210.13577"]	high
+Schwarz waveform relaxation for coupled transport-reaction equations	["2205.01708"]	medium
+multimodal retrieval augmented generation with image and text retrieval	["2511.16654"]	low
+general linear groups over local rings universal equivalence	["2408.04079"]	high
+lower bounds for Betti numbers of monomial ideals	["1706.09866"]	medium
+semantic change visualization with temporal word embeddings	["1410.4966"]	low
+transit time variations for planet mass and eccentricity estimation	["1510.02476"]	high
+visible-light effects on ZnO electrical transport	["0910.2692"]	medium
+degenerate p-Laplace equations with log-concave weights	["2501.02106"]	low
+boundary duality in Maxwell-BF theory	["1907.08764"]	high
+taxonomy of facet and position in immersive analytics	["2005.06013"]	medium
+BCS-BEC crossover signatures in Fermi quantum rings	["2011.14538"]	low
+F-16 airfoil mock-ups for supersonic wind tunnel validation	["2301.01135"]	high
+metro origin-destination prediction with spatial-temporal MLPs	["2404.15734"]	medium
+public transport route choice from smart card data	["2503.17370"]	low
+integrable interacting-electron model for metallic grains	["cond-mat/0101029"]	high
+random feature ensembles and scaling law tradeoffs	["2412.05418"]	medium
+fair graph neural networks via counterfactual debiasing	["2508.14683"]	low
+depth and normal estimation across views and patches	["2603.03026"]	high
+properties of optically selected low-redshift EIS clusters	["astro-ph/0502539"]	medium
+thermal and optical characterization of power LED assemblies	["0709.1815"]	low
+linear invariance testing of boolean functions	["2308.02662"]	high
+chat-driven personalization of model predictive control	["2508.16913"]	medium
+lower central series of right-angled Coxeter groups	["2504.10736"]	low
+solving x^d plus (x+1)^d over finite fields	["2305.10671"]	high
+relational MDPs with exogenous events and additive rewards	["1306.6302"]	medium
+self-explaining rationalization with Lipschitz restraint	["2305.13599"]	low
+warm-start strategies for unfolding networks in compressed sensing	["2502.01854"]	high
+synthetic solar X-ray flare time series modeling	["1007.2735"]	medium
+optical Doppler tomography sparse reconstruction with attention	["2404.17484"]	low
+introductory overview of Whitney towers	["2012.01475"]	high
+metal-poor luminous post-AGB star missing third dredge-up	["1710.04368"]	medium
+semantic segmentation with convnets and graphical models	["1412.4313"]	low
+learned compression for UAV-captured video	["2301.06115"]	high
+sampling uniform domino tilings via Glauber dynamics	["1210.5456"]	medium
+supersymmetry breaking in Chern-Simons-matter theories	["1405.7469"]	low
+recent solar neutrino measurements in Super-Kamiokande	["hep-ex/0306002"]	high
+half-quadratic splitting network for MR image reconstruction	["2112.09760"]	medium
+stability conditions for modified gravity with matter fields	["1609.03599"]	low
+higher-order topological Peierls insulator in atom-cavity systems	["2305.03409"]	high
+T-odd asymmetry in radiative K-plus decay	["2210.15535"]	medium
+ionized nebulae around faint AGN at redshift two	["1809.04089"]	low
+Banach space with algebraically trivial norm-attaining functionals	["2406.07273"]	high
+giant pulses in pulsar J1047-6709	["2012.05482"]	medium
+using prior information for spatio-temporal object discovery	["1602.02938"]	low
+bond-alternating Kitaev chains and ladders symmetry analysis	["2201.03132"]	high
+quantum cluster variables and canonical submodules	["2412.11628"]	medium
+generalized Sierpinski Arrowhead curve constructions	["1710.08480"]	low
+tunable broadband mid-infrared source from a Yb:fiber oscillator	["1109.2624"]	high
+Yang-Lee and Fisher zeros in nonequilibrium systems	["0804.3179"]	medium
+uniqueness of complete Ricci flow with curvature bounded below	["1310.1611"]	low
+symmetry constraints on CP violation in QCD	["hep-ph/9704427"]	high
+probability-based enhanced sampling for rare events	["2410.17029"]	medium
+N-point functions of locally non-Gaussian fields	["2602.10151"]	low
+strong-coupling investigation of cluster dynamical mean field theory	["cond-mat/0605133"]	high
+spin accumulation in ferromagnet-superconductor junctions	["cond-mat/9903209"]	medium
+gesture-based ide for workflow diagram modeling	["1205.0751"]	low
+quality-efficiency tradeoffs in agentic search	["2602.23949"]	high
+unsupervised automata learning via discrete optimization	["2303.14111"]	medium
+magnetodielectric effects in Z- and W-type hexaferrites	["1407.3605"]	low
+time variation of gauge couplings and symmetry breaking	["hep-ph/0204258"]	high
+Weinberg theorem in cosmological perturbation theory	["1508.03293"]	medium
+pixelated silicon drift detector for x-ray astrophysics	["1808.08041"]	low
+parallel compositing of volumetric depth images	["2206.14503"]	high
+GUP and Snyder non-commutative algebras with deformed symmetries	["1301.4042"]	medium
+annealing effects on giant tunnel magnetoresistance in CoFeB/MgO junctions	["cond-mat/0610526"]	low
+Berry geometric magnetic forces in molecular dynamics spectroscopy	["2008.09752"]	high
+time-resolved terahertz dynamics in Bi2Se3 thin films	["1410.5666"]	medium
+security proof method for practical single-qubit QKD	["2208.13754"]	low
+StyleGAN2-ADA on medical image datasets	["2210.03786"]	high
+the Schwinger model on the torus	["hep-th/9608103"]	medium
+rate bounds for over-relaxed ADMM	["1512.02063"]	low
+chaos in variable-length double pendulum dynamics	["2602.21123"]	high
+deep learning grading and staging of ovarian cancer tissue images	["2505.09993"]	medium
+approximating convex bodies with multiobjective optimization	["2103.06613"]	low
+personalized prompt-based meeting transcription with speaker attribution	["2309.16247"]	high
+retrieval-augmented pre-training for neural acoustic fields	["2504.14409"]	medium
+regulator genes and eQTL detection in gene networks	["1512.05574"]	low
+high-dimensional time-varying coefficient estimation in diffusion models	["2202.08419"]	high
+Picard groups of perfectoid covers of toric varieties	["2011.03613"]	medium
+polarimetric BSSRDF acquisition of dynamic faces	["2501.01980"]	low
+quasinormal ringing of de Sitter braneworlds	["2501.00477"]	high
+zero-field skyrmionic states and edge-skyrmions from boundary tuning	["2108.06223"]	medium
+nonlinear dynamics near vanished invariant solutions	["2411.10320"]	low
+ensemble debiasing for fairer prompting accuracy	["2503.05157"]	high
+query scheduling under complex user profiles	["1902.10384"]	medium
+recursive numeral systems and learnability with reinforcement learning	["2602.21720"]	low
+scalar quadruplet extensions of the standard model	["2406.01628"]	high
