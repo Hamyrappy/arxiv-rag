@@ -203,11 +203,16 @@ def load_benchmark(benchmark_path: Path) -> list[dict]:
     return benchmark
 
 
-def load_corpus(data_folder: Path, limit: int | None) -> tuple[list[str], list[str]]:
+def load_corpus(
+    data_folder: Path,
+    limit: int | None,
+    must_include_ids: set[str] | None = None,
+) -> tuple[list[str], list[str]]:
     df = load_arxiv_data(
         data_folder=str(data_folder),
         limit=limit,
         columns=["id", "title", "abstract"],
+        must_include_ids=must_include_ids,
     )
     if df.empty:
         raise ValueError(f"No documents loaded from processed data folder: {data_folder}")
@@ -382,7 +387,12 @@ def main() -> None:
         return
 
     try:
-        doc_ids, texts = load_corpus(args.data_folder, args.limit)
+        benchmark_ids = {
+            str(doc_id)
+            for item in benchmark
+            for doc_id in item["relevant_ids"]
+        }
+        doc_ids, texts = load_corpus(args.data_folder, args.limit, must_include_ids=benchmark_ids)
     except Exception as exc:
         raise SystemExit(f"Error: {exc}") from exc
 

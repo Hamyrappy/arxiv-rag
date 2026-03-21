@@ -276,7 +276,15 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
 
 
 
-def load_arxiv_data(data_folder, limit=None, categories=None, columns=None, shuffle=False, random_state=None):
+def load_arxiv_data(
+    data_folder,
+    limit=None,
+    categories=None,
+    columns=None,
+    shuffle=False,
+    random_state=None,
+    must_include_ids=None,
+):
     """
     Загружает данные из обработанного датасета arXiv, возвращая единый DataFrame.
 
@@ -295,6 +303,11 @@ def load_arxiv_data(data_folder, limit=None, categories=None, columns=None, shuf
         Перемешать ли итоговую выборку перед применением limit.
     random_state : int, optional
         Seed для воспроизводимости перемешивания.
+    must_include_ids : set of str, optional
+        Идентификаторы статей, которые всегда должны попасть в выборку
+        (даже если не вмещаются в limit). Для поиска таких статей
+        просматриваются все parquet-файлы; лимит заполняется остатком
+        обычных строк.
 
     Returns
     -------
@@ -311,16 +324,25 @@ def load_arxiv_data(data_folder, limit=None, categories=None, columns=None, shuf
     need_categories = categories is not None
     categories_set = set(categories) if categories else None
 
+    must_include_set = set(must_include_ids) if must_include_ids else set()
+
     # Если нужна фильтрация, а колонка categories_list не запрошена, добавим её временно
     effective_columns = columns
     if need_categories and columns is not None and 'categories_list' not in columns:
-        effective_columns = columns + ['categories_list']
+        effective_columns = list(effective_columns) + ['categories_list']
 
-    accumulated = []  # список для отфильтрованных чанков
-    total_rows = 0
+    # Если нужно искать must-include статьи, а колонка id не запрошена, добавим её временно
+    _need_temp_id = bool(must_include_set) and columns is not None and 'id' not in columns
+    if _need_temp_id:
+        effective_columns = list(effective_columns) + ['id']
+
+    must_accumulated = []   # строки с must-include ID
+    regular_accumulated = []  # обычные строки
+    must_found: set = set()
+    regular_count = 0
 
     for file in tqdm(files, desc="Loading parquet files", unit="file"):
-        # Читаем файл (можно прочитать все колонки и потом выбрать нужные)
+        # Читаем файл
         df_chunk = pd.read_parquet(file)
 
         # Выбираем только те колонки, которые есть в файле и нужны
@@ -331,7 +353,6 @@ def load_arxiv_data(data_folder, limit=None, categories=None, columns=None, shuf
         # Фильтрация по категориям
         if categories_set:
             if 'categories_list' not in df_chunk.columns:
-                # Если колонка отсутствует (например, файл другого формата) – ошибка
                 raise ValueError(f"В файле {file} отсутствует колонка 'categories_list'")
             mask = df_chunk['categories_list'].apply(lambda cats: bool(set(cats) & categories_set))
             df_chunk = df_chunk[mask]
@@ -340,32 +361,60 @@ def load_arxiv_data(data_folder, limit=None, categories=None, columns=None, shuf
         if df_chunk.empty:
             continue
 
-        accumulated.append(df_chunk)
-        total_rows += len(df_chunk)
+        # Разделяем чанк на must-include и обычные строки
+        if must_include_set and 'id' in df_chunk.columns:
+            remaining_must = must_include_set - must_found
+            must_mask = df_chunk['id'].astype(str).isin(remaining_must)
+            must_chunk = df_chunk[must_mask]
+            regular_chunk = df_chunk[~must_mask]
 
-        # Если достигнут лимит, прекращаем чтение следующих файлов
-        if limit is not None and total_rows >= limit:
+            if not must_chunk.empty:
+                must_accumulated.append(must_chunk)
+                must_found.update(must_chunk['id'].astype(str).tolist())
+        else:
+            must_chunk = pd.DataFrame()
+            regular_chunk = df_chunk
+
+        # Накапливаем обычные строки до лимита
+        if limit is None or regular_count < limit:
+            if limit is not None:
+                remaining = limit - regular_count
+                if len(regular_chunk) > remaining:
+                    regular_chunk = regular_chunk.iloc[:remaining]
+            if not regular_chunk.empty:
+                regular_accumulated.append(regular_chunk)
+                regular_count += len(regular_chunk)
+
+        # Ранний выход: все must-include найдены И обычных строк достаточно
+        all_must_found = (must_include_set <= must_found)
+        if limit is not None and regular_count >= limit and all_must_found:
             break
 
-    # Объединяем накопленные чанки
-    if not accumulated:
-        # Возвращаем пустой DataFrame с правильными колонками
+    # Собираем итоговый DataFrame
+    must_df = pd.concat(must_accumulated, ignore_index=True) if must_accumulated else pd.DataFrame()
+    regular_df = pd.concat(regular_accumulated, ignore_index=True) if regular_accumulated else pd.DataFrame()
+
+    # Если must-include статей много — урезаем обычные строки, чтобы total ≤ limit
+    if limit is not None and not must_df.empty:
+        regular_to_keep = max(0, limit - len(must_df))
+        regular_df = regular_df.head(regular_to_keep)
+
+    frames = [f for f in [must_df, regular_df] if not f.empty]
+    if not frames:
         if columns is not None:
             return pd.DataFrame(columns=columns)
         else:
             return pd.DataFrame()
 
-    df = pd.concat(accumulated, ignore_index=True)
-
-    # Обрезаем до лимита (на случай, если последний чанк добавил лишние строки)
-    if limit is not None and len(df) > limit:
-        df = df.head(limit)
+    df = pd.concat(frames, ignore_index=True)
 
     # Перемешивание
     if shuffle:
         df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
 
-    # Удаляем временную колонку categories_list, если она не была запрошена
+    # Удаляем временные колонки, если они не были запрошены
+    if _need_temp_id and 'id' in df.columns:
+        df = df.drop(columns=['id'])
     if need_categories and columns is not None and 'categories_list' not in columns:
         if 'categories_list' in df.columns:
             df = df.drop(columns=['categories_list'])
