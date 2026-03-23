@@ -33,7 +33,15 @@ import pandas as pd
 
 from arxiv_rag.dataset import load_arxiv_data
 from arxiv_rag.evaluation import Evaluator
-from arxiv_rag.models import BM25RAG, TfidfRAG
+from arxiv_rag.models import (
+    BM25RAG,
+    BGERetriever,
+    HybridRetriever,
+    MiniLMRetriever,
+    Specter1Retriever,
+    Specter2Retriever,
+    TfidfRAG,
+)
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
 DEFAULT_BENCHMARK_PATH = Path("eval/benchmark.tsv")
@@ -220,7 +228,7 @@ def load_corpus(
     doc_ids = df["id"].fillna("").astype(str).tolist()
     titles = df["title"].fillna("").astype(str)
     abstracts = df["abstract"].fillna("").astype(str)
-    texts = (titles + ". " + abstracts).str.strip().tolist()
+    texts = (titles + " [SEP] " + abstracts).str.strip().tolist()
     return doc_ids, texts
 
 
@@ -276,6 +284,26 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
     registry = {
         "bm25": ("BM25RAG", BM25RAG),
         "tfidf": ("TfidfRAG", TfidfRAG),
+        "specter1": ("SPECTER-v1", Specter1Retriever),
+        "specter2": ("SPECTER-v2", Specter2Retriever),
+        "bge": ("BGE-small", BGERetriever),
+        "minilm": ("MiniLM-L6", MiniLMRetriever),
+        "hybrid-rrf": (
+            "Hybrid-RRF(BM25+BGE)",
+            lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="rrf"),
+        ),
+        "hybrid-rrf-specter": (
+            "Hybrid-RRF(BM25+SPECTER2)",
+            lambda: HybridRetriever(BM25RAG(), Specter2Retriever(), fusion="rrf"),
+        ),
+        "hybrid-weighted": (
+            "Hybrid-Weighted(BM25+BGE)",
+            lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted", alpha=0.5),
+        ),
+        "hybrid-weighted-specter": (
+            "Hybrid-Weighted(BM25+SPECTER2)",
+            lambda: HybridRetriever(BM25RAG(), Specter2Retriever(), fusion="weighted", alpha=0.5),
+        ),
     }
 
     if model_name in registry:
@@ -323,14 +351,24 @@ def run_evaluation(
     k: int = 10,
     show_per_query: bool = False,
 ) -> None:
+    import time
+
     print(f"\nBuilding index for {model_name}...")
+    t0 = time.perf_counter()
     evaluator = Evaluator(retriever=retriever, doc_ids=doc_ids, texts=texts)
+    index_time = time.perf_counter() - t0
+
+    t0 = time.perf_counter()
     results = evaluator.evaluate(
         benchmark,
         k=k,
         show_progress=True,
         progress_desc=f"Evaluating {model_name}",
     )
+    query_time = time.perf_counter() - t0
+    n_queries = len(benchmark)
+    avg_latency_ms = (query_time / n_queries * 1000) if n_queries else 0.0
+
     total_queries = benchmark_summary["total_queries"]
     evaluated_queries = benchmark_summary["evaluated_queries"]
     query_factor = evaluated_queries / total_queries if total_queries else 0.0
@@ -348,6 +386,10 @@ def run_evaluation(
     print(f"  Recall@{k} (penalized) : {penalized_recall:.4f}")
     print(f"  MRR (penalized)        : {penalized_mrr:.4f}")
     print(f"  nDCG@{k} (penalized)   : {penalized_ndcg:.4f}")
+    print(f"  --- Speed ---")
+    print(f"  Index time             : {index_time:.2f}s")
+    print(f"  Total query time       : {query_time:.2f}s ({n_queries} queries)")
+    print(f"  Avg query latency      : {avg_latency_ms:.1f}ms")
 
     if not show_per_query:
         return
