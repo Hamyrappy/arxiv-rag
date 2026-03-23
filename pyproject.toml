@@ -16,6 +16,9 @@ dependencies = [
     "scikit-learn",
     "rank_bm25",
     "kaggle",
+    "sentence-transformers>=3.2.1",
+    "faiss-cpu>=1.8.0.post1",
+    "torch>=2.1.0",
 ]
 
 [project.scripts]
@@ -32,3 +35,4 @@ py-modules = ["evaluate_models", "run_simple_baseline"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["arxiv_rag*"]
+
