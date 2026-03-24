@@ -11,36 +11,34 @@ from tqdm import tqdm
 
 def data_converter(input_path, output_path, chunksize=100000, final_output=None):
     """
-    Обрабатывает файл arxiv-metadata-oai-snapshot.json, выполняет очистку,
-    извлечение признаков и глобальное удаление дубликатов по названию и авторам.
-    При указании final_output объединяет все part-файлы в один Parquet с исправлением id.
+    Processes the arxiv-metadata-oai-snapshot.json file, performs cleaning,
+    feature extraction, and global deduplication by title and authors.
+    If final_output is specified, merges all part files into a single Parquet
+    with id correction.
 
     Parameters
     ----------
     input_path : str
-        Путь к входному JSON-файлу (arxiv-metadata-oai-snapshot.json).
+        Path to the input JSON file (arxiv-metadata-oai-snapshot.json).
     output_path : str
-        Путь к папке, куда будут сохранены файлы финального датасета (part_*.parquet).
+        Path to the folder where the final dataset files (part_*.parquet) will be saved.
     chunksize : int, optional
-        Количество строк в одном чанке (по умолчанию 100000).
+        Number of rows per chunk (default 100000).
     final_output : str, optional
-        Если указан, то после обработки все part-файлы объединяются в один файл
-        по этому пути, а id при необходимости форматируются с ведущими нулями.
-        Затем part-файлы удаляются.
+        If specified, after processing all part files are merged into one file
+        at this path, and ids are formatted with leading zeros if necessary.
+        Part files are then deleted.
     """
-    # Создаём выходную папку и временную папку для чанков
     os.makedirs(output_path, exist_ok=True)
     temp_dir = os.path.join(output_path, 'temp_chunks')
     os.makedirs(temp_dir, exist_ok=True)
 
-    # --- Вспомогательные функции ---
     def extract_first_version_date(versions):
-        """Извлекает дату первой версии из поля 'versions'."""
+        """Extracts the date of the first version from the 'versions' field."""
         if versions is None:
             return None
         if isinstance(versions, float) and np.isnan(versions):
             return None
-        # Если versions список (уже распарсено)
         if isinstance(versions, list):
             if len(versions) == 0:
                 return None
@@ -54,7 +52,6 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
                     except ValueError:
                         continue
             return None
-        # Если versions строка
         if isinstance(versions, str):
             if versions.strip() in ('', '[]', '{}'):
                 return None
@@ -76,7 +73,7 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
         return None
 
     def clean_update_date(ud):
-        """Приводит update_date к единому формату YYYY-MM-DD."""
+        """Converts update_date to YYYY-MM-DD format."""
         if pd.isna(ud):
             return None
         try:
@@ -85,13 +82,13 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
             return None
 
     def split_categories(cat_str):
-        """Разбивает строку категорий на список."""
+        """Splits the category string into a list."""
         if pd.isna(cat_str):
             return []
         return str(cat_str).split()
 
     def clean_title(title):
-        """Очищает заголовок от LaTeX и приводит к нижнему регистру."""
+        """Cleans the title from LaTeX and converts to lowercase."""
         if pd.isna(title):
             return ''
         title = re.sub(r'\$.*?\$', '', title)
@@ -100,7 +97,7 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
         return title
 
     def authors_to_set(authors_parsed):
-        """Преобразует список авторов в множество кортежей (фамилия, имя)."""
+        """Converts the list of authors into a set of (last name, first name) tuples."""
         if isinstance(authors_parsed, list):
             return set(tuple(a[:2]) for a in authors_parsed if len(a) >= 2)
         else:
@@ -108,8 +105,8 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
 
     def process_duplicate_group(entries):
         """
-        entries: список кортежей (global_index, authors_set, date_sort)
-        Возвращает список global_index, которые нужно удалить (оставить одну с max date).
+        entries: list of tuples (global_index, authors_set, date_sort)
+        Returns a list of global_index to delete (keep the one with max date).
         """
         n = len(entries)
         if n <= 1:
@@ -118,7 +115,6 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
         authors_sets = [e[1] for e in entries]
         dates = [e[2] for e in entries]
 
-        # DSU для кластеризации по общим авторам
         parent = list(range(n))
         def find(x):
             while parent[x] != x:
@@ -150,32 +146,27 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
                     to_drop.append(indices[i])
         return to_drop
 
-    # ------------------ Первый проход: обработка чанков и сбор информации для дедупликации ----------
     reader = pd.read_json(input_path, lines=True, chunksize=chunksize, dtype={'id': str})
-    dup_map = {}          # ключ: title_cleaned -> список (global_index, authors_set, date_sort)
+    dup_map = {}
     global_index = 0
     chunk_num = 0
 
     for chunk in tqdm(reader, desc="Processing chunks", unit="chunk"):
         df = chunk.copy()
 
-        # Приводим id к строке сразу после чтения
         df['id'] = df['id'].astype(str)
 
-        # 1. Удаление ненужных столбцов
         cols_to_drop = ['submitter', 'authors', 'comments']
         existing_cols = [c for c in cols_to_drop if c in df.columns]
         if existing_cols:
             df.drop(columns=existing_cols, inplace=True)
 
-        # 2. Бинаризация journal-ref, doi, report-no, license
         binary_cols = ['journal-ref', 'doi', 'report-no', 'license']
         for col in binary_cols:
             if col in df.columns:
                 df[f'{col}_present'] = df[col].apply(lambda x: 0 if pd.isna(x) or x == '' else 1)
                 df.drop(columns=[col], inplace=True)
 
-        # 3. Обработка дат
         if 'versions' in df.columns:
             df['first_version_date'] = df['versions'].apply(extract_first_version_date)
             df.drop(columns=['versions'], inplace=True)
@@ -183,22 +174,18 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
             df['last_update_date'] = df['update_date'].apply(clean_update_date)
             df.drop(columns=['update_date'], inplace=True)
 
-        # 4. Преобразование categories
         if 'categories' in df.columns:
             df['categories_list'] = df['categories'].apply(split_categories)
             df.drop(columns=['categories'], inplace=True)
 
-        # 5. Подготовка к дедупликации
         df['title_cleaned'] = df['title'].apply(clean_title)
         df['authors_set'] = df['authors_parsed'].apply(authors_to_set)
         df['date_sort'] = pd.to_datetime(df['last_update_date'])
         df['global_index'] = range(global_index, global_index + len(df))
 
-        # Сохраняем чанк во временный файл
         chunk_path = os.path.join(temp_dir, f'chunk_{chunk_num:04d}.parquet')
         df.to_parquet(chunk_path, index=False)
 
-        # Сбор информации для дедупликации
         for _, row in df.iterrows():
             title_cleaned = row['title_cleaned']
             if title_cleaned:
@@ -210,19 +197,17 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
 
         global_index += len(df)
         chunk_num += 1
-        tqdm.write(f"Обработан чанк {chunk_num}, всего записей: {global_index}")
+        tqdm.write(f"Processed chunk {chunk_num}, total records: {global_index}")
 
-    # ------------------ Второй этап: глобальная дедупликация ------------------
-    tqdm.write("Сбор информации о дубликатах завершён. Выполняется кластеризация...")
+    tqdm.write("Duplicate information collection finished. Clustering...")
     indices_to_drop = set()
     total_groups = len(dup_map)
     for title, entries in tqdm(dup_map.items(), total=total_groups, desc="Deduplicating", unit="group"):
         to_drop = process_duplicate_group(entries)
         indices_to_drop.update(to_drop)
 
-    tqdm.write(f"Найдено дублирующихся записей: {len(indices_to_drop)}")
+    tqdm.write(f"Duplicate records found: {len(indices_to_drop)}")
 
-    # ------------------ Третий проход: запись финального датасета без дубликатов ------------------
     chunk_files = sorted([f for f in os.listdir(temp_dir) if f.startswith('chunk_')])
     part_num = 0
     for chunk_file in tqdm(chunk_files, desc="Writing final dataset", unit="file"):
@@ -234,31 +219,25 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
         if df_filtered.empty:
             continue
 
-        # Приведение id к строке (гарантия)
         df_filtered['id'] = df_filtered['id'].astype(str)
 
-        # Удаляем временные столбцы
         cols_to_remove = ['authors_set', 'date_sort', 'global_index', 'title_cleaned']
         df_filtered.drop(columns=[c for c in cols_to_remove if c in df_filtered.columns], inplace=True)
 
-        # Сохраняем как часть финального датасета
         part_path = os.path.join(output_path, f'part_{part_num:04d}.parquet')
         df_filtered.to_parquet(part_path, index=False)
         part_num += 1
 
-    # Удаляем временную папку
     shutil.rmtree(temp_dir)
-    tqdm.write(f"Готово! Финальный датасет сохранён в папку {output_path} в виде {part_num} файлов.")
-    tqdm.write(f"Всего записей после дедупликации: {global_index - len(indices_to_drop)}")
+    tqdm.write(f"Done! Final dataset saved to folder {output_path} as {part_num} files.")
+    tqdm.write(f"Total records after deduplication: {global_index - len(indices_to_drop)}")
 
-    # ------------------ Финальное объединение (если запрошено) ------------------
     if final_output is not None:
-        tqdm.write("Объединение part-файлов в один датасет...")
+        tqdm.write("Merging part files into one dataset...")
         df_list = []
         part_files = sorted([f for f in os.listdir(output_path) if f.startswith('part_')])
         for pf in tqdm(part_files, desc="Merging part files", unit="file"):
             df_part = pd.read_parquet(os.path.join(output_path, pf))
-            # Если id оказался числовым (маловероятно, но на всякий случай) – форматируем
             if df_part['id'].dtype != 'object':
                 df_part['id'] = df_part['id'].apply(
                     lambda x: f"{float(x):07.4f}" if isinstance(x, (int, float)) else str(x)
@@ -267,13 +246,11 @@ def data_converter(input_path, output_path, chunksize=100000, final_output=None)
 
         df_final = pd.concat(df_list, ignore_index=True)
         df_final.to_parquet(final_output, index=False)
-        tqdm.write(f"Объединённый датасет сохранён в {final_output}")
+        tqdm.write(f"Merged dataset saved to {final_output}")
 
-        # Удаляем part-файлы (опционально)
         for pf in tqdm(part_files, desc="Removing part files", unit="file"):
             os.remove(os.path.join(output_path, pf))
-        tqdm.write("Временные part-файлы удалены.")
-
+        tqdm.write("Temporary part files removed.")
 
 
 def load_arxiv_data(
@@ -286,82 +263,73 @@ def load_arxiv_data(
     must_include_ids=None,
 ):
     """
-    Загружает данные из обработанного датасета arXiv, возвращая единый DataFrame.
+    Loads data from the processed arXiv dataset, returning a single DataFrame.
 
     Parameters
     ----------
     data_folder : str
-        Путь к папке, содержащей part-файлы Parquet.
+        Path to the folder containing part_*.parquet files.
     limit : int, optional
-        Максимальное количество статей для загрузки.
+        Maximum number of papers to load.
     categories : list of str, optional
-        Список категорий (например, ['cs.AI', 'physics']).
-        Загружаются статьи, у которых хотя бы одна категория из списка.
+        List of categories (e.g., ['cs.AI', 'physics']).
+        Only papers that have at least one of these categories are loaded.
     columns : list of str, optional
-        Список колонок для загрузки (по умолчанию все).
+        List of columns to load (by default all).
     shuffle : bool, default False
-        Перемешать ли итоговую выборку перед применением limit.
+        Whether to shuffle the final sample before applying limit.
     random_state : int, optional
-        Seed для воспроизводимости перемешивания.
+        Seed for reproducible shuffling.
     must_include_ids : set of str, optional
-        Идентификаторы статей, которые всегда должны попасть в выборку
-        (даже если не вмещаются в limit). Для поиска таких статей
-        просматриваются все parquet-файлы; лимит заполняется остатком
-        обычных строк.
+        Paper IDs that must always be included in the sample
+        (even if they exceed the limit). To find such papers,
+        all parquet files are scanned; the limit is filled with the rest
+        of the regular rows.
 
     Returns
     -------
     pandas.DataFrame
-        Запрошенные данные.
+        Requested data.
     """
-    # Получаем список всех part-файлов и сортируем
     file_pattern = os.path.join(data_folder, 'part_*.parquet')
     files = sorted(glob.glob(file_pattern))
     if not files:
-        raise ValueError(f"В папке {data_folder} не найдены файлы part_*.parquet")
+        raise ValueError(f"No part_*.parquet files found in folder {data_folder}")
 
-    # Определяем, нужна ли фильтрация по категориям
     need_categories = categories is not None
     categories_set = set(categories) if categories else None
 
     must_include_set = set(must_include_ids) if must_include_ids else set()
 
-    # Если нужна фильтрация, а колонка categories_list не запрошена, добавим её временно
     effective_columns = columns
     if need_categories and columns is not None and 'categories_list' not in columns:
         effective_columns = list(effective_columns) + ['categories_list']
 
-    # Если нужно искать must-include статьи, а колонка id не запрошена, добавим её временно
     _need_temp_id = bool(must_include_set) and columns is not None and 'id' not in columns
     if _need_temp_id:
         effective_columns = list(effective_columns) + ['id']
 
-    must_accumulated = []   # строки с must-include ID
-    regular_accumulated = []  # обычные строки
+    must_accumulated = []
+    regular_accumulated = []
     must_found: set = set()
     regular_count = 0
 
     for file in tqdm(files, desc="Loading parquet files", unit="file"):
-        # Читаем файл
         df_chunk = pd.read_parquet(file)
 
-        # Выбираем только те колонки, которые есть в файле и нужны
         if effective_columns is not None:
             cols_present = [c for c in effective_columns if c in df_chunk.columns]
             df_chunk = df_chunk[cols_present]
 
-        # Фильтрация по категориям
         if categories_set:
             if 'categories_list' not in df_chunk.columns:
-                raise ValueError(f"В файле {file} отсутствует колонка 'categories_list'")
+                raise ValueError(f"Column 'categories_list' missing in file {file}")
             mask = df_chunk['categories_list'].apply(lambda cats: bool(set(cats) & categories_set))
             df_chunk = df_chunk[mask]
 
-        # Если после фильтрации чанк пуст, пропускаем
         if df_chunk.empty:
             continue
 
-        # Разделяем чанк на must-include и обычные строки
         if must_include_set and 'id' in df_chunk.columns:
             remaining_must = must_include_set - must_found
             must_mask = df_chunk['id'].astype(str).isin(remaining_must)
@@ -375,7 +343,6 @@ def load_arxiv_data(
             must_chunk = pd.DataFrame()
             regular_chunk = df_chunk
 
-        # Накапливаем обычные строки до лимита
         if limit is None or regular_count < limit:
             if limit is not None:
                 remaining = limit - regular_count
@@ -385,16 +352,13 @@ def load_arxiv_data(
                 regular_accumulated.append(regular_chunk)
                 regular_count += len(regular_chunk)
 
-        # Ранний выход: все must-include найдены И обычных строк достаточно
         all_must_found = (must_include_set <= must_found)
         if limit is not None and regular_count >= limit and all_must_found:
             break
 
-    # Собираем итоговый DataFrame
     must_df = pd.concat(must_accumulated, ignore_index=True) if must_accumulated else pd.DataFrame()
     regular_df = pd.concat(regular_accumulated, ignore_index=True) if regular_accumulated else pd.DataFrame()
 
-    # Если must-include статей много — урезаем обычные строки, чтобы total ≤ limit
     if limit is not None and not must_df.empty:
         regular_to_keep = max(0, limit - len(must_df))
         regular_df = regular_df.head(regular_to_keep)
@@ -408,11 +372,9 @@ def load_arxiv_data(
 
     df = pd.concat(frames, ignore_index=True)
 
-    # Перемешивание
     if shuffle:
         df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
 
-    # Удаляем временные колонки, если они не были запрошены
     if _need_temp_id and 'id' in df.columns:
         df = df.drop(columns=['id'])
     if need_categories and columns is not None and 'categories_list' not in columns:
