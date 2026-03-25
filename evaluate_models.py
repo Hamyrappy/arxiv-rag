@@ -43,6 +43,7 @@ from arxiv_rag.models import (
     Specter2Retriever,
     TfidfRAG,
     CrossEncoderReranker,
+    PaletsvNeboRetriever,
 )
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
@@ -314,6 +315,11 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
                 top_n=100
             )
         ),
+        "paletsv-nebo": (
+            "PaletsvNebo-Random",
+            lambda: PaletsvNeboRetriever(),
+        ),
+
     }
 
     if model_name in registry:
@@ -346,7 +352,7 @@ def resolve_retrievers(model_arg: str) -> list[tuple[str, Any]]:
         all_models = [
             "tfidf", "bm25", "minilm", "specter1", "specter2", "bge",
             "hybrid-rrf", "hybrid-rrf-specter", "hybrid-weighted", 
-            "hybrid-weighted-specter", "cross-encoder"
+            "hybrid-weighted-specter", "cross-encoder", "paletsv-nebo"
         ]
         return [_build_retriever(k) for k in all_models]
     return [_build_retriever(model_arg.strip())]
