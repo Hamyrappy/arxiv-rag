@@ -1,0 +1,11 @@
+query	relevant_ids	relevance_tier
+bayesian data assimilation for COVID-19 epidemic evolution	["2101.01532"]	high
+high-dimensional bayesian optimisation for expensive black-box functions	["2510.08965"]	medium
+battery reliability and diagnosis in lithium-ion systems	["2503.00305"]	low
+locality-aware point-view fusion transformer for 3D shape recognition	["2109.01291"]	high
+multimodal llm unlearning of sensitive visual concepts	["2511.11299"]	medium
+cosmic acceleration from alternative equations of state	["2403.17880"]	low
+growth of CdTe quantum dots on silicon substrates	["cond-mat/0601050"]	high
+quantum electromechanical shuttle noise and transport	["cond-mat/0509748"]	medium
+numerical integration of oscillatory Fourier-type integrals	["2102.07551"]	low
+Stark deflectometry for nanoparticle sorting	["0708.1936"]	high

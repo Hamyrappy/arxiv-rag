@@ -36,14 +36,13 @@ from arxiv_rag.evaluation import Evaluator
 from arxiv_rag.models import (
     BM25RAG,
     BGERetriever,
+    CrossEncoderReranker,
     HybridRetriever,
     MiniLMRetriever,
     PaletsvNeboRetriever,
     Specter1Retriever,
     Specter2Retriever,
     TfidfRAG,
-    CrossEncoderReranker,
-    PaletsvNeboRetriever,
 )
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
@@ -315,11 +314,6 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
                 top_n=100
             )
         ),
-        "paletsv-nebo": (
-            "PaletsvNebo-Random",
-            lambda: PaletsvNeboRetriever(),
-        ),
-
     }
 
     if model_name in registry:
