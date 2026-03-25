@@ -27,6 +27,7 @@ arxiv-rag-prepare-data = "arxiv_rag.dataset.prepare_data:main"
 arxiv-rag-run-baseline = "arxiv_rag.baseline_cli:main"
 arxiv-rag-quick = "arxiv_rag.quick_query_cli:main"
 arxiv-rag-evaluate = "evaluate_models:main"
+arxiv-rag-cloud-eval = "cloud_eval_runner:main"
 
 [project.optional-dependencies]
 dev = []

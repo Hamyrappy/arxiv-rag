@@ -54,6 +54,9 @@ uv run arxiv-rag-evaluate --benchmark eval/benchmark.tsv --validate-only
 
 # 4) Запустить оценку
 uv run arxiv-rag-evaluate --model all --benchmark eval/benchmark.tsv --k 20
+
+# 5) Сохранить structured results по всем benchmark-файлам
+uv run arxiv-rag-cloud-eval --k 20
 ```
 
 ## Структура проекта
@@ -128,6 +131,26 @@ uv run arxiv-rag-evaluate --model bm25 --benchmark eval/benchmark.tsv --k 20 --s
 - `limit`: полный корпус (без ограничения)
 - вывод: summary-only
 
+### Cloud Eval CLI (structured output для Colab/Kaggle)
+
+```bash
+# Все встроенные модели на всех eval/*.tsv
+uv run arxiv-rag-cloud-eval --k 20
+
+# Только часть benchmark-ов и моделей
+uv run arxiv-rag-cloud-eval --benchmarks benchmark.tsv semantic_bench.tsv --models bm25 bge cross-encoder --k 20
+
+# Без per-query файлов
+uv run arxiv-rag-cloud-eval --no-per-query --k 20
+```
+
+Артефакты по умолчанию пишутся в `outputs/cloud_eval/`:
+- `summary.csv` - одна строка на `(benchmark, model)`;
+- `summary.json` - те же aggregate-метрики в JSON;
+- `per_query.csv` и `per_query.jsonl` - подробные результаты по каждому запросу;
+- `leaderboards.tex` - готовые LaTeX-таблицы;
+- `manifest.json` - metadata запуска и пути к артефактам.
+
 ## Модели и где они доступны
 
 | Модель | quick | run-baseline | evaluate |
@@ -190,6 +213,7 @@ Evaluator выводит:
 - Eval не потоковый: корпус целиком загружается в память.
 - Sparse и dense индексы строятся в RAM.
 - Dense/Hybrid/Cross-Encoder могут требовать заметно больше RAM/времени.
+- `arxiv-rag-cloud-eval` переиспользует индекс одной модели между benchmark-файлами, но полный прогон всех dense/hybrid/cross-encoder моделей все равно может занимать часы.
 - На слабой машине лучше:
   - сначала `--validate-only`;
   - уменьшать `--limit`;
@@ -244,9 +268,29 @@ uv run python app.py
 - Benchmark не валидируется: запустите `--validate-only`, исправьте строку из сообщения ошибки.
 - Не хватает памяти: уменьшайте `--limit`, отключайте `all`, гоняйте модели по одной.
 
+## Google Colab / Kaggle
+
+Для облака лучше использовать уже подготовленную папку `data/processed/`, а не повторно обрабатывать raw JSON. Практический сценарий такой:
+
+1. Загрузить репозиторий и `data/processed/` в Colab Drive или Kaggle Dataset.
+2. Установить зависимости через `pip`, а не через `uv`, чтобы не зависеть от локальной nightly-конфигурации `torch`.
+3. Запустить `python cloud_eval_runner.py ...` или `uv run arxiv-rag-cloud-eval ...`.
+4. Забрать артефакты из `outputs/cloud_eval/`.
+
+Минимальный Colab/Kaggle bootstrap:
+
+```bash
+pip install pandas numpy pyarrow tqdm scikit-learn rank_bm25 kaggle sentence-transformers faiss-cpu torch flask
+pip install -e .
+python cloud_eval_runner.py --k 20
+```
+
+Если нужен notebook-режим, можно импортировать `run_cloud_evaluation(...)` из `cloud_eval_runner.py` и получить сразу `DataFrame`-ы для красивого вывода в ячейках.
+
 ## Полезные файлы
 
 - `evaluate_models.py` - entrypoint eval
+- `cloud_eval_runner.py` - structured export для Colab/Kaggle
 - `arxiv_rag/baseline_cli.py` - baseline CLI
 - `arxiv_rag/quick_query_cli.py` - quick CLI
 - `arxiv_rag/evaluation/evaluator.py` - логика метрик
