@@ -8,9 +8,12 @@ from arxiv_rag.dataset.dataloader import load_arxiv_data
 from arxiv_rag.models import BM25RAG, TfidfRAG
 
 try:
-    from arxiv_rag.models.dense import DenseRetriever
+    from arxiv_rag.models.dense import DenseRetriever, Specter2Retriever, BGERetriever
+    from arxiv_rag.models.hybrid import HybridRetriever
+    from arxiv_rag.models.cross_encoder import CrossEncoderReranker
     DENSE_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"Warning: Dense models not available ({e})")
     DENSE_AVAILABLE = False
 
 app = Flask(__name__)
@@ -26,7 +29,15 @@ retriever = None
 def load_corpus_and_build_index(model_name, limit):
     global corpus, texts, retriever
     print(f"Loading data with limit={limit}...")
-    df = load_arxiv_data(data_folder=DATA_FOLDER, limit=limit)
+    must_include_ids = None
+    try:
+        import pandas as pd
+        if os.path.exists("eval/benchmark_fast.tsv"):
+            bench = pd.read_csv("eval/benchmark_fast.tsv", sep="\t")
+            must_include_ids = set(bench["Relevant_Doc_ID"].astype(str).tolist())
+    except Exception:
+        pass
+    df = load_arxiv_data(data_folder=DATA_FOLDER, limit=limit, must_include_ids=must_include_ids)
     if df.empty:
         raise RuntimeError("No data loaded. Check DATA_FOLDER and data preparation.")
     corpus = df.to_dict(orient="records")
@@ -38,9 +49,17 @@ def load_corpus_and_build_index(model_name, limit):
     elif model_name == "tfidf":
         ret = TfidfRAG()
     elif model_name == "dense" and DENSE_AVAILABLE:
-        ret = DenseRetriever(model_name="all-MiniLM-L6-v2")
+        ret = DenseRetriever(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    elif model_name == "specter2" and DENSE_AVAILABLE:
+        ret = Specter2Retriever()
+    elif model_name == "bge" and DENSE_AVAILABLE:
+        ret = BGERetriever()
+    elif model_name == "hybrid" and DENSE_AVAILABLE:
+        ret = HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted")
+    elif model_name == "cross_encoder" and DENSE_AVAILABLE:
+        ret = CrossEncoderReranker(HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted"), top_n=100)
     else:
-        raise ValueError(f"Unknown model: {model_name}")
+        raise ValueError(f"Unknown model: {model_name} or dense models not available")
 
     print(f"Building index for {model_name}...")
     ret.fit(texts)
@@ -81,6 +100,10 @@ HTML_TEMPLATE = """
             <option value="tfidf" {% if model == 'tfidf' %}selected{% endif %}>TF-IDF</option>
             {% if DENSE_AVAILABLE %}
             <option value="dense" {% if model == 'dense' %}selected{% endif %}>Dense (MiniLM)</option>
+            <option value="specter2" {% if model == 'specter2' %}selected{% endif %}>Specter 2</option>
+            <option value="bge" {% if model == 'bge' %}selected{% endif %}>BGE</option>
+            <option value="hybrid" {% if model == 'hybrid' %}selected{% endif %}>Hybrid (BM25 + BGE)</option>
+            <option value="cross_encoder" {% if model == 'cross_encoder' %}selected{% endif %}>Cross-Encoder (MS-MARCO)</option>
             {% endif %}
         </select>
 
