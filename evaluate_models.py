@@ -11,8 +11,8 @@ Usage
 -----
     python evaluate_models.py
     python evaluate_models.py --model bm25 --benchmark eval/benchmark.tsv --k 20
-    python evaluate_models.py --model all --benchmark eval/benchmark_fast.tsv --limit 50000 --k 20
-    python evaluate_models.py --model tfidf --benchmark eval/benchmark_fast.tsv --limit 50000 --k 20 --show-per-query
+    python evaluate_models.py --model all --benchmark eval/benchmark.tsv --limit 50000 --k 20
+    python evaluate_models.py --model tfidf --benchmark eval/benchmark.tsv --limit 50000 --k 20 --show-per-query
     python evaluate_models.py --benchmark eval/benchmark.tsv --validate-only
 
 If some relevant_ids are not present in the loaded corpus slice, they are skipped.
@@ -36,12 +36,13 @@ from arxiv_rag.evaluation import Evaluator
 from arxiv_rag.models import (
     BM25RAG,
     BGERetriever,
+    CrossEncoderReranker,
     HybridRetriever,
     MiniLMRetriever,
+    PaletsvNeboRetriever,
     Specter1Retriever,
     Specter2Retriever,
     TfidfRAG,
-    CrossEncoderReranker,
 )
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
@@ -289,6 +290,7 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
         "specter2": ("SPECTER-v2", Specter2Retriever),
         "bge": ("BGE-small", BGERetriever),
         "minilm": ("MiniLM-L6", MiniLMRetriever),
+        "paletsv-nebo": ("PaletsvNebo-Random", PaletsvNeboRetriever),
         "hybrid-rrf": (
             "Hybrid-RRF(BM25+BGE)",
             lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="rrf"),
@@ -344,7 +346,7 @@ def resolve_retrievers(model_arg: str) -> list[tuple[str, Any]]:
         all_models = [
             "tfidf", "bm25", "minilm", "specter1", "specter2", "bge",
             "hybrid-rrf", "hybrid-rrf-specter", "hybrid-weighted", 
-            "hybrid-weighted-specter", "cross-encoder"
+            "hybrid-weighted-specter", "cross-encoder", "paletsv-nebo"
         ]
         return [_build_retriever(k) for k in all_models]
     return [_build_retriever(model_arg.strip())]

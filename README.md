@@ -54,7 +54,6 @@ evaluate_models.py       # CLI оценки retriever'ов на benchmark
 app.py                   # веб-демо
 eval/
 	benchmark.tsv          # основной benchmark
-	benchmark_fast.tsv     # быстрый smoke benchmark
 	BENCHMARK_FORMAT.md    # правила формата benchmark-файла
 data/
 	raw/                   # сырые файлы из Kaggle
@@ -107,7 +106,7 @@ uv lock
 3. Проверить baseline на отдельных запросах.
 4. Создать или отредактировать benchmark в `eval/benchmark.tsv`.
 5. Сначала прогнать `--validate-only`.
-6. Затем запустить eval на `benchmark_fast.tsv` или на полном `benchmark.tsv`.
+6. Затем запустить eval на `benchmark.tsv`.
 7. При необходимости подключить свой retriever и сравнить его с baseline.
 
 ## Подготовка данных
@@ -159,7 +158,53 @@ uv run arxiv-rag-prepare-data --chunksize 50000
 
 ## Запуск baseline retriever'ов
 
-CLI для ручной проверки retrieval:
+### Быстрый поиск по одному запросу
+
+Если нужно быстро найти топ-3 статьи по запросу, используй команду `arxiv-rag-quick`:
+
+```bash
+uv run arxiv-rag-quick "neural networks"
+```
+
+По умолчанию:
+
+- retriever: `bm25`
+- results: `3` (топ-3 статьи)
+- limit: `50000` документов
+
+#### Примеры использования quick query
+
+```bash
+# Базовый поиск (топ-3)
+uv run arxiv-rag-quick "reinforcement learning"
+
+# Получить больше результатов
+uv run arxiv-rag-quick "graph neural networks" --k 10
+
+# Использовать TF-IDF вместо BM25
+uv run arxiv-rag-quick "transformers" --model tfidf
+
+# Работать с ограниченной частью корпуса
+uv run arxiv-rag-quick "attention mechanism" --limit 30000
+
+# Комбинированные параметры
+uv run arxiv-rag-quick "machine learning" --k 5 --limit 100000 --model tfidf
+```
+
+#### Доступные параметры quick query
+
+- `query` (обязательный) - текст поискового запроса
+- `--model` - retriever для поиска (по умолчанию: `bm25`). Доступны:
+    `bm25`, `tfidf`, `specter1`, `specter2`, `bge`, `minilm`,
+    `hybrid-rrf`, `hybrid-rrf-specter`, `hybrid-weighted`,
+    `hybrid-weighted-specter`, `cross-encoder`, `paletsv-nebo`, `random`.
+- `--k K` - количество результатов (по умолчанию: `3`)
+- `--limit LIMIT` - макс. документов для загрузки (по умолчанию: `50000`)
+- `--data-folder FOLDER` - путь до обработанных данных
+
+### Полный baseline с несколькими запросами
+
+Для более подробной проверки baseline'ов используй `arxiv-rag-run-baseline`:
 
 ```bash
 uv run arxiv-rag-run-baseline
@@ -205,7 +250,7 @@ uv run arxiv-rag-evaluate
 Benchmark-файлы лежат в каталоге `eval/`:
 
 - `eval/benchmark.tsv` - основной benchmark;
-- `eval/benchmark_fast.tsv` - быстрый smoke benchmark;
+
 - `eval/BENCHMARK_FORMAT.md` - краткая спецификация формата.
 
 ### Формат benchmark-файла
@@ -279,7 +324,7 @@ uv run arxiv-rag-evaluate --model tfidf --benchmark eval/benchmark.tsv --k 20 --
 ### Быстрый smoke test
 
 ```bash
-uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark_fast.tsv --k 20
+uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark.tsv --k 20
 ```
 
 ## Как запускать eval, если полный датасет не помещается в RAM
@@ -292,7 +337,7 @@ uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark_f
 Поэтому на слабой машине рабочая стратегия такая:
 
 1. Проверять benchmark через `--validate-only`.
-2. Для smoke test использовать `eval/benchmark_fast.tsv`.
+2. Для smoke test можно использовать `--limit` для снижения объема данных.
 3. Ограничивать корпус через `--limit`.
 4. Гонять по одному retriever за запуск, а не `all`.
 
@@ -300,8 +345,8 @@ uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark_f
 
 ```bash
 uv run arxiv-rag-evaluate --benchmark eval/benchmark.tsv --validate-only
-uv run arxiv-rag-evaluate --model bm25 --benchmark eval/benchmark_fast.tsv --limit 30000 --k 20
-uv run arxiv-rag-evaluate --model tfidf --benchmark eval/benchmark_fast.tsv --limit 30000 --k 20
+uv run arxiv-rag-evaluate --model bm25 --benchmark eval/benchmark.tsv --limit 30000 --k 20
+uv run arxiv-rag-evaluate --model tfidf --benchmark eval/benchmark.tsv --limit 30000 --k 20
 ```
 
 ## Какие метрики считает evaluator
@@ -438,7 +483,7 @@ uv run arxiv-rag-evaluate --benchmark eval/benchmark.tsv --validate-only
 ### Сценарий 2. Быстро сравнить baseline'ы на ограниченной машине
 
 ```bash
-uv run arxiv-rag-evaluate --model all --benchmark eval/benchmark_fast.tsv --limit 30000 --k 20
+uv run arxiv-rag-evaluate --model all --benchmark eval/benchmark.tsv --limit 30000 --k 20
 ```
 
 ### Сценарий 3. Сравнить свой retriever с BM25
@@ -502,7 +547,7 @@ uv run arxiv-rag-evaluate --model tfidf --benchmark eval/benchmark.tsv --k 20
 - Если не работает автоматическая загрузка: проверь Kaggle credentials.
 - Если baseline или eval не находят данные: сначала запусти `uv run arxiv-rag-prepare-data` или передай свои пути через `--data-folder`.
 - Если benchmark не валидируется: сначала запусти `uv run arxiv-rag-evaluate --benchmark eval/benchmark.tsv --validate-only` и исправь строку, на которую ругается evaluator.
-- Если не хватает памяти: уменьшай `--limit`, используй `benchmark_fast.tsv` и запускай по одному retriever за раз.
+- Если не хватает памяти: уменьшай `--limit` и запускай по одному retriever за раз.
 - Если хочешь честный full eval по всему корпусу, а RAM не хватает: нужен отдельный рефакторинг под потоковую или дисковую индексацию.
 
 ## Дополнительные файлы

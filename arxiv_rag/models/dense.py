@@ -42,7 +42,7 @@ class DenseRetriever:
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         query_prompt: Optional[str] = None,
-        batch_size: int = 256,
+        batch_size: int = 64,
         device: Optional[str] = None,
         cache_dir: Optional[Path] = None,
     ):
