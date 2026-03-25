@@ -42,7 +42,7 @@ class DenseRetriever:
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
         query_prompt: Optional[str] = None,
-        batch_size: int = 64,
+        batch_size: int = 256,
         device: Optional[str] = None,
         cache_dir: Optional[Path] = None,
     ):
@@ -109,6 +109,7 @@ class DenseRetriever:
         dim = embeddings.shape[1]
         self._index = faiss.IndexFlatIP(dim)
         self._index.add(embeddings)
+        del embeddings
         return self
 
     def topk(self, query: str, k: int) -> list[int]:
@@ -290,6 +291,7 @@ class Specter2Retriever(DenseRetriever):
         dim = embeddings.shape[1]
         self._index = faiss.IndexFlatL2(dim)
         self._index.add(embeddings)
+        del embeddings
         return self
 
     def topk(self, query: str, k: int) -> list[int]:

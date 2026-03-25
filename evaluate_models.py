@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gc
 import importlib
 import json
 from pathlib import Path
@@ -318,7 +319,7 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
 
     if model_name in registry:
         display_name, factory = registry[model_name]
-        return display_name, factory()
+        return display_name, factory
 
     if ":" not in model_name:
         valid = ", ".join(["all", *sorted(registry)])
@@ -337,7 +338,7 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
         )
 
     display_name = getattr(retriever, "__class__", type(retriever)).__name__
-    return display_name, retriever
+    return display_name, (lambda retriever=retriever: retriever)
 
 
 def resolve_retrievers(model_arg: str) -> list[tuple[str, Any]]:
@@ -484,17 +485,24 @@ def main() -> None:
             f"Missing ids: {preview}{suffix}"
         )
 
-    for model_name, retriever in retrievers:
-        run_evaluation(
-            model_name,
-            retriever,
-            doc_ids=doc_ids,
-            texts=texts,
-            benchmark=benchmark,
-            benchmark_summary=benchmark_summary,
-            k=args.k,
-            show_per_query=args.show_per_query,
-        )
+    for model_name, retriever_factory in retrievers:
+        retriever = None
+        try:
+            retriever = retriever_factory()
+            run_evaluation(
+                model_name,
+                retriever,
+                doc_ids=doc_ids,
+                texts=texts,
+                benchmark=benchmark,
+                benchmark_summary=benchmark_summary,
+                k=args.k,
+                show_per_query=args.show_per_query,
+            )
+        finally:
+            if retriever is not None:
+                del retriever
+            gc.collect()
 
 
 if __name__ == "__main__":
