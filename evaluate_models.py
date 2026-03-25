@@ -11,8 +11,8 @@ Usage
 -----
     python evaluate_models.py
     python evaluate_models.py --model bm25 --benchmark eval/benchmark.tsv --k 20
-    python evaluate_models.py --model all --benchmark eval/benchmark_fast.tsv --limit 50000 --k 20
-    python evaluate_models.py --model tfidf --benchmark eval/benchmark_fast.tsv --limit 50000 --k 20 --show-per-query
+    python evaluate_models.py --model all --benchmark eval/benchmark.tsv --limit 50000 --k 20
+    python evaluate_models.py --model tfidf --benchmark eval/benchmark.tsv --limit 50000 --k 20 --show-per-query
     python evaluate_models.py --benchmark eval/benchmark.tsv --validate-only
 
 If some relevant_ids are not present in the loaded corpus slice, they are skipped.

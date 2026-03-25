@@ -41,7 +41,7 @@ uv run arxiv-rag-evaluate --benchmark eval/benchmark.tsv --validate-only
 Быстрый smoke-тест:
 
 ```bash
-uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark_fast.tsv --k 20
+uv run arxiv-rag-evaluate --model all --limit 50000 --benchmark eval/benchmark.tsv --k 20
 ```
 
 Полная оценка:

@@ -32,8 +32,8 @@ def load_corpus_and_build_index(model_name, limit):
     must_include_ids = None
     try:
         import pandas as pd
-        if os.path.exists("eval/benchmark_fast.tsv"):
-            bench = pd.read_csv("eval/benchmark_fast.tsv", sep="\t")
+        if os.path.exists("eval/benchmark.tsv"):
+            bench = pd.read_csv("eval/benchmark.tsv", sep="\t")
             must_include_ids = set(bench["Relevant_Doc_ID"].astype(str).tolist())
     except Exception:
         pass
