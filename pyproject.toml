@@ -7,7 +7,7 @@ name = "arxiv-rag"
 version = "0.1.0"
 description = "Optimizing RAG for arXiv"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "numpy",
@@ -35,4 +35,18 @@ py-modules = ["evaluate_models", "run_simple_baseline"]
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["arxiv_rag*"]
+
+[[tool.uv.index]]
+name = "pytorch-nightly-cu128"
+url = "https://download.pytorch.org/whl/nightly/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-nightly-cu128" }
+
+[tool.uv]
+prerelease = "allow"
+environments = [
+    "sys_platform == 'win32'",
+]
 

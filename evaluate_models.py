@@ -41,6 +41,7 @@ from arxiv_rag.models import (
     Specter1Retriever,
     Specter2Retriever,
     TfidfRAG,
+    CrossEncoderReranker,
 )
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
@@ -304,6 +305,13 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
             "Hybrid-Weighted(BM25+SPECTER2)",
             lambda: HybridRetriever(BM25RAG(), Specter2Retriever(), fusion="weighted", alpha=0.5),
         ),
+        "cross-encoder": (
+            "CrossEncoder(Hybrid+MSMARCO)",
+            lambda: CrossEncoderReranker(
+                HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted", alpha=0.5),
+                top_n=100
+            )
+        ),
     }
 
     if model_name in registry:
@@ -333,7 +341,12 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
 def resolve_retrievers(model_arg: str) -> list[tuple[str, Any]]:
     normalized = model_arg.strip().lower()
     if normalized == "all":
-        return [_build_retriever("bm25"), _build_retriever("tfidf")]
+        all_models = [
+            "tfidf", "bm25", "minilm", "specter1", "specter2", "bge",
+            "hybrid-rrf", "hybrid-rrf-specter", "hybrid-weighted", 
+            "hybrid-weighted-specter", "cross-encoder"
+        ]
+        return [_build_retriever(k) for k in all_models]
     return [_build_retriever(model_arg.strip())]
 
 

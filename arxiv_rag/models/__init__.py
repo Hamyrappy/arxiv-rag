@@ -7,6 +7,7 @@ from arxiv_rag.models.dense import (
     Specter2Retriever,
 )
 from arxiv_rag.models.hybrid import HybridRetriever
+from arxiv_rag.models.cross_encoder import CrossEncoderReranker
 
 __all__ = [
     "TfidfRAG",
@@ -17,4 +18,5 @@ __all__ = [
     "Specter1Retriever",
     "Specter2Retriever",
     "HybridRetriever",
+    "CrossEncoderReranker",
 ]
