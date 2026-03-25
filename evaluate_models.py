@@ -38,6 +38,7 @@ from arxiv_rag.models import (
     BGERetriever,
     HybridRetriever,
     MiniLMRetriever,
+    PaletsvNeboRetriever,
     Specter1Retriever,
     Specter2Retriever,
     TfidfRAG,
@@ -289,6 +290,7 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
         "specter2": ("SPECTER-v2", Specter2Retriever),
         "bge": ("BGE-small", BGERetriever),
         "minilm": ("MiniLM-L6", MiniLMRetriever),
+        "paletsv-nebo": ("PaletsvNebo-Random", PaletsvNeboRetriever),
         "hybrid-rrf": (
             "Hybrid-RRF(BM25+BGE)",
             lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="rrf"),
