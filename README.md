@@ -159,7 +159,50 @@ uv run arxiv-rag-prepare-data --chunksize 50000
 
 ## Запуск baseline retriever'ов
 
-CLI для ручной проверки retrieval:
+### Быстрый поиск по одному запросу
+
+Если нужно быстро найти топ-3 статьи по запросу, используй команду `arxiv-rag-quick`:
+
+```bash
+uv run arxiv-rag-quick "neural networks"
+```
+
+По умолчанию:
+
+- retriever: `bm25`
+- results: `3` (топ-3 статьи)
+- limit: `50000` документов
+
+#### Примеры использования quick query
+
+```bash
+# Базовый поиск (топ-3)
+uv run arxiv-rag-quick "reinforcement learning"
+
+# Получить больше результатов
+uv run arxiv-rag-quick "graph neural networks" --k 10
+
+# Использовать TF-IDF вместо BM25
+uv run arxiv-rag-quick "transformers" --model tfidf
+
+# Работать с ограниченной частью корпуса
+uv run arxiv-rag-quick "attention mechanism" --limit 30000
+
+# Комбинированные параметры
+uv run arxiv-rag-quick "machine learning" --k 5 --limit 100000 --model tfidf
+```
+
+#### Доступные параметры quick query
+
+- `query` (обязательный) - текст поискового запроса
+- `--model {bm25,tfidf}` - retriever для поиска (по умолчанию: `bm25`)
+- `--k K` - количество результатов (по умолчанию: `3`)
+- `--limit LIMIT` - макс. документов для загрузки (по умолчанию: `50000`)
+- `--data-folder FOLDER` - путь до обработанных данных
+
+### Полный baseline с несколькими запросами
+
+Для более подробной проверки baseline'ов используй `arxiv-rag-run-baseline`:
 
 ```bash
 uv run arxiv-rag-run-baseline
