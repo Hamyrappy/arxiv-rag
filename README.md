@@ -195,7 +195,10 @@ uv run arxiv-rag-quick "machine learning" --k 5 --limit 100000 --model tfidf
 #### Доступные параметры quick query
 
 - `query` (обязательный) - текст поискового запроса
-- `--model {bm25,tfidf}` - retriever для поиска (по умолчанию: `bm25`)
+- `--model` - retriever для поиска (по умолчанию: `bm25`). Доступны:
+    `bm25`, `tfidf`, `specter1`, `specter2`, `bge`, `minilm`,
+    `hybrid-rrf`, `hybrid-rrf-specter`, `hybrid-weighted`,
+    `hybrid-weighted-specter`, `cross-encoder`, `paletsv-nebo`, `random`.
 - `--k K` - количество результатов (по умолчанию: `3`)
 - `--limit LIMIT` - макс. документов для загрузки (по умолчанию: `50000`)
 - `--data-folder FOLDER` - путь до обработанных данных

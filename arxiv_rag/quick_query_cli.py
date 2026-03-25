@@ -5,12 +5,46 @@ from __future__ import annotations
 import argparse
 import sys
 
+import pandas as pd
+
 from arxiv_rag.dataset import load_arxiv_data
-from arxiv_rag.models import BM25RAG, TfidfRAG
+from arxiv_rag.models import (
+    BGERetriever,
+    BM25RAG,
+    CrossEncoderReranker,
+    HybridRetriever,
+    MiniLMRetriever,
+    PaletsvNeboRetriever,
+    Specter1Retriever,
+    Specter2Retriever,
+    TfidfRAG,
+)
 
 DEFAULT_DATA_FOLDER = "data/processed"
-DEFAULT_LIMIT = 2000000
+DEFAULT_LIMIT = 50000
 DEFAULT_TOPK = 3
+MODEL_CHOICES = [
+    "bm25",
+    "tfidf",
+    "specter1",
+    "specter2",
+    "bge",
+    "minilm",
+    "hybrid-rrf",
+    "hybrid-rrf-specter",
+    "hybrid-weighted",
+    "hybrid-weighted-specter",
+    "cross-encoder",
+    "paletsv-nebo",
+    "random",
+]
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("Value must be a positive integer.")
+    return parsed
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -30,19 +64,19 @@ Examples:
     )
     parser.add_argument(
         "--model",
-        choices=["bm25", "tfidf"],
+        choices=MODEL_CHOICES,
         default="bm25",
         help="Retriever to use (default: bm25)",
     )
     parser.add_argument(
         "--k",
-        type=int,
+        type=_positive_int,
         default=DEFAULT_TOPK,
         help=f"Number of top papers to return (default: {DEFAULT_TOPK})",
     )
     parser.add_argument(
         "--limit",
-        type=int,
+        type=_positive_int,
         default=DEFAULT_LIMIT,
         help=f"Max documents to load from corpus (default: {DEFAULT_LIMIT})",
     )
@@ -56,19 +90,45 @@ Examples:
 
 def _build_model(model_name: str):
     """Build retriever instance."""
-    if model_name == "bm25":
-        return BM25RAG()
-    return TfidfRAG()
+    registry = {
+        "bm25": BM25RAG,
+        "tfidf": TfidfRAG,
+        "specter1": Specter1Retriever,
+        "specter2": Specter2Retriever,
+        "bge": BGERetriever,
+        "minilm": MiniLMRetriever,
+        "paletsv-nebo": PaletsvNeboRetriever,
+        "random": PaletsvNeboRetriever,
+        "hybrid-rrf": lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="rrf"),
+        "hybrid-rrf-specter": lambda: HybridRetriever(BM25RAG(), Specter2Retriever(), fusion="rrf"),
+        "hybrid-weighted": lambda: HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted", alpha=0.5),
+        "hybrid-weighted-specter": lambda: HybridRetriever(
+            BM25RAG(), Specter2Retriever(), fusion="weighted", alpha=0.5
+        ),
+        "cross-encoder": lambda: CrossEncoderReranker(
+            HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted", alpha=0.5),
+            top_n=100,
+        ),
+    }
+    return registry[model_name]()
 
 
 def _format_abstract(abstract: str, max_length: int = 150) -> str:
     """Truncate abstract to max_length with ellipsis."""
-    if not abstract:
+    if pd.isna(abstract):
         return "[No abstract]"
     abstract = str(abstract).strip()
+    if not abstract:
+        return "[No abstract]"
     if len(abstract) > max_length:
         return abstract[:max_length] + "..."
     return abstract
+
+
+def _format_title(title: str) -> str:
+    if pd.isna(title):
+        return ""
+    return str(title).strip()
 
 
 def main() -> None:
@@ -94,6 +154,14 @@ def main() -> None:
         raise SystemExit(1) from exc
 
     texts = df["abstract"].fillna("").astype(str).tolist()
+    if not texts:
+        print(
+            "Error: Loaded dataset is empty."
+            " Check --data-folder and --limit values.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     model = _build_model(args.model)
     model.fit(texts)
 
@@ -109,7 +177,7 @@ def main() -> None:
     for rank, idx in enumerate(indices, 1):
         row = df.iloc[idx]
         arxiv_id = str(row["id"])
-        title = str(row["title"] or "")
+        title = _format_title(row["title"])
         abstract = _format_abstract(row["abstract"])
 
         print(f"\n{rank}. arXiv:{arxiv_id}")
