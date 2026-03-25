@@ -144,12 +144,15 @@ uv run arxiv-rag-evaluate --model bm25 --benchmark eval/benchmark.tsv --k 20 --s
 | hybrid-weighted-specter | yes | no | yes |
 | cross-encoder | yes | no | yes |
 | paletsv-nebo | yes | no | yes |
+| yandex-llm | yes | no | yes |
 | random | yes | no | no |
 | custom `module:factory_or_class` | no | no | yes |
 
 Примечания:
 - `random` в quick CLI является алиасом `paletsv-nebo`.
 - В evaluate `--model all` включает 12 встроенных моделей, включая `paletsv-nebo`.
+- `yandex-llm` требует переменных окружения `YANDEX_API_KEY` и `YANDEX_FOLDER_ID` (или явной передачи параметров).
+- В `--model all` модель `yandex-llm` **не** включена автоматически из-за требования внешнего API.
 
 ## Benchmark и формат
 
@@ -218,6 +221,43 @@ uv run arxiv-rag-evaluate --model tfidf --benchmark eval/benchmark.tsv --limit 3
 ```bash
 uv run arxiv-rag-evaluate --model my_retriever:MyRetriever --benchmark eval/benchmark.tsv --k 20
 ```
+
+## Yandex LLM Re-ranker
+
+`YandexLLMReranker` — двухэтапный re-ranker на базе YandexGPT:
+
+1. **First stage** — быстрый base retriever (по умолчанию BM25) возвращает `top_n` кандидатов.
+2. **Second stage** — каждый кандидат асинхронно оценивается через Yandex Foundation Models API;
+   кандидаты переупорядочиваются по полученным оценкам релевантности.
+
+### Конфигурация
+
+Обязательные переменные окружения:
+
+| Переменная | Описание |
+|---|---|
+| `YANDEX_API_KEY` | API-ключ Yandex Cloud |
+| `YANDEX_FOLDER_ID` | ID каталога Yandex Cloud (используется для построения model URI) |
+
+Запуск evaluate:
+
+```bash
+export YANDEX_API_KEY=your_api_key
+export YANDEX_FOLDER_ID=your_folder_id
+uv run arxiv-rag-evaluate --model yandex-llm --benchmark eval/benchmark.tsv --k 10
+```
+
+Параметры `YandexLLMReranker` (передаются при кастомном использовании):
+
+| Параметр | По умолчанию | Описание |
+|---|---|---|
+| `base_retriever` | — | Любой retriever с `fit`/`topk` интерфейсом |
+| `api_key` | `$YANDEX_API_KEY` | API-ключ |
+| `folder_id` | `$YANDEX_FOLDER_ID` | ID каталога |
+| `model_uri` | `gpt://<folder_id>/yandexgpt-lite` | Полный URI модели |
+| `top_n` | `20` | Кандидаты от base retriever |
+| `max_workers` | `5` | Параллельных запросов к API |
+| `temperature` | `0.0` | Температура генерации (0 = детерминированный вывод) |
 
 ## Веб-демо (Flask)
 
