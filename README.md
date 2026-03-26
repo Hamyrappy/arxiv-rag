@@ -1,5 +1,13 @@
 # arxiv-rag
 
+
+
+
+<head>
+
+  <p align="center" width="100%">
+<video src="https://github.com/user-attachments/assets/f7b56680-77e7-42f3-a6ef-acba6be0d603" width="80%" controls></video>
+</p>
 Небольшой исследовательский проект для сравнения retrieval-моделей на метаданных arXiv.
 
 Проект покрывает три практические задачи:
@@ -295,3 +303,5 @@ python cloud_eval_runner.py --k 20
 - `arxiv_rag/quick_query_cli.py` - quick CLI
 - `arxiv_rag/evaluation/evaluator.py` - логика метрик
 - `eval/BENCHMARK_FORMAT.md` - спецификация benchmark
+
+</head>
