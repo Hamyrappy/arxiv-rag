@@ -44,6 +44,7 @@ from arxiv_rag.models import (
     Specter1Retriever,
     Specter2Retriever,
     TfidfRAG,
+    YandexLLMReranker,
 )
 
 DEFAULT_DATA_FOLDER = Path("data/processed")
@@ -314,6 +315,14 @@ def _build_retriever(model_name: str) -> tuple[str, Any]:
                 HybridRetriever(BM25RAG(), BGERetriever(), fusion="weighted", alpha=0.5),
                 top_n=100
             )
+        ),
+        "yandex-llm": (
+            "YandexLLM(BM25)",
+            lambda: YandexLLMReranker(
+                base_retriever=BM25RAG(),
+                top_n=20,
+                max_workers=5,
+            ),
         ),
     }
 

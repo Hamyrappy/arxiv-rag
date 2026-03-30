@@ -8,6 +8,7 @@ from arxiv_rag.models.dense import (
 )
 from arxiv_rag.models.hybrid import HybridRetriever
 from arxiv_rag.models.cross_encoder import CrossEncoderReranker
+from arxiv_rag.models.llm_reranker import YandexLLMReranker
 from arxiv_rag.models.random_retriever import PaletsvNeboRetriever
 
 __all__ = [
@@ -20,5 +21,6 @@ __all__ = [
     "Specter2Retriever",
     "HybridRetriever",
     "CrossEncoderReranker",
+    "YandexLLMReranker",
     "PaletsvNeboRetriever",
 ]
